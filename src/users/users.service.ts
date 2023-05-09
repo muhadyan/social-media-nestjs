@@ -5,12 +5,13 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { LogInDto, SignUpDto, UpdateUserDto } from './dto';
 import { BasicResponse, LoginReponse } from 'src/interfaces';
-import { User } from './schemas';
+import { Follow, User } from './schemas';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Follow.name) private followModel: Model<Follow>,
     private jwtService: JwtService,
   ) {}
 
@@ -155,6 +156,77 @@ export class UsersService {
       const resp: BasicResponse = {
         statusCode: HttpStatus.OK,
         message: `Account ${updateUserDto.username} successfully updated`,
+      };
+
+      return resp;
+    } catch (error) {
+      if (!error.status) {
+        error.status = HttpStatus.INTERNAL_SERVER_ERROR;
+      }
+      throw new HttpException(error.message, error.status);
+    }
+  }
+
+  async follow(id: string, userID: string): Promise<BasicResponse> {
+    try {
+      const user = await this.userModel.findById(id);
+      if (!user) {
+        throw new HttpException('User does not exist', HttpStatus.NOT_FOUND);
+      }
+
+      const isFollowed = await this.followModel.findOne({
+        user_id: userID,
+        follow: id,
+      });
+      if (isFollowed) {
+        throw new HttpException('User already followed', HttpStatus.CONFLICT);
+      }
+
+      const follow: Follow = {
+        user_id: userID,
+        follow: id,
+      };
+
+      const followed = await new this.followModel(follow).save();
+      if (!followed) {
+        throw new HttpException(
+          'Error when insert to table like',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      const resp: BasicResponse = {
+        statusCode: HttpStatus.OK,
+        message: 'Success',
+      };
+
+      return resp;
+    } catch (error) {
+      if (!error.status) {
+        error.status = HttpStatus.INTERNAL_SERVER_ERROR;
+      }
+      throw new HttpException(error.message, error.status);
+    }
+  }
+
+  async unfollow(id: string, userID: string): Promise<BasicResponse> {
+    try {
+      const user = await this.userModel.findById(id);
+      if (!user) {
+        throw new HttpException('User does not exist', HttpStatus.NOT_FOUND);
+      }
+
+      const unfollow = await this.followModel.findOneAndDelete({
+        user_id: userID,
+        follow: id,
+      });
+      if (!unfollow) {
+        throw new HttpException('User already unfollowed', HttpStatus.CONFLICT);
+      }
+
+      const resp: BasicResponse = {
+        statusCode: HttpStatus.OK,
+        message: 'Success',
       };
 
       return resp;
