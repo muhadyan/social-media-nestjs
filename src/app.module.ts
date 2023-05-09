@@ -8,12 +8,16 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import * as dotenv from 'dotenv';
 import { UsersModule } from './users/users.module';
+import { PostsModule } from './posts/posts.module';
 import { AuthMiddleware } from './middleware';
+import { SharedModule } from './shared/shared.module';
 
 dotenv.config();
 @Module({
   imports: [
     UsersModule,
+    PostsModule,
+    SharedModule,
     JwtModule,
     MongooseModule.forRoot(process.env.MONGODB_URI, {
       dbName: process.env.DB_NAME,

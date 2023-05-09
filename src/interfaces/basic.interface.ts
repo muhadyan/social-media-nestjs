@@ -10,3 +10,9 @@ interface MetaResponse {
   page: number;
   last_page: number;
 }
+
+export interface BasicQuery {
+  search: string;
+  page: string;
+  limit: string;
+}
