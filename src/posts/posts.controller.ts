@@ -107,4 +107,12 @@ export class PostsController {
     const userID = this.sharedService.getUserIdFromToken(header);
     return this.postsService.comment(id, userID, createCommentDto);
   }
+
+  @Get(':id/comment')
+  findComments(
+    @Param('id') id: string,
+    @Query() query: BasicQuery,
+  ): Promise<BasicResponse> {
+    return this.postsService.findComments(id, query);
+  }
 }

@@ -432,4 +432,52 @@ export class PostsService {
       throw new HttpException(error.message, error.status);
     }
   }
+
+  async findComments(id: string, query: BasicQuery): Promise<BasicResponse> {
+    try {
+      let skip = 0;
+      let page = 1;
+      let limit = 10;
+
+      const post = await this.postModel.findById(id);
+      if (!post) {
+        throw new HttpException('Post does not exist', HttpStatus.NOT_FOUND);
+      }
+
+      if (query.limit) {
+        limit = parseInt(query.limit);
+      }
+
+      if (query.page) {
+        page = parseInt(query.page);
+        skip = (page - 1) * limit;
+      }
+
+      const data = await this.commentModel
+        .find({ post_id: id })
+        .skip(skip)
+        .limit(limit)
+        .sort('created_at');
+
+      const total = await this.commentModel.count({ post_id: id });
+
+      const resp: BasicResponse = {
+        statusCode: HttpStatus.OK,
+        message: 'Success',
+        data: data,
+        meta: {
+          total: total,
+          page: page,
+          last_page: Math.ceil(total / limit),
+        },
+      };
+
+      return resp;
+    } catch (error) {
+      if (!error.status) {
+        error.status = HttpStatus.INTERNAL_SERVER_ERROR;
+      }
+      throw new HttpException(error.message, error.status);
+    }
+  }
 }
