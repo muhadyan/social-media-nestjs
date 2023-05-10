@@ -4,7 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { Follow, FollowSchema, User, UserSchema } from './schemas';
-import { SharedDecodedToken } from 'src/shared/shared.service';
+import { SharedService } from 'src/shared/shared.service';
 
 @Module({
   imports: [
@@ -15,6 +15,6 @@ import { SharedDecodedToken } from 'src/shared/shared.service';
     ]),
   ],
   controllers: [UsersController],
-  providers: [UsersService, SharedDecodedToken],
+  providers: [UsersService, SharedService],
 })
 export class UsersModule {}

@@ -10,18 +10,19 @@ import {
   Headers,
   HttpStatus,
   HttpException,
+  Get,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { LogInDto, SignUpDto, UpdateUserDto } from './dto';
 import { BasicResponse } from 'src/interfaces';
-import { SharedDecodedToken } from 'src/shared/shared.service';
+import { SharedService } from 'src/shared/shared.service';
 
 @Controller({ path: 'users', version: '1' })
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
-    private sharedDecodedToken: SharedDecodedToken,
+    private sharedService: SharedService,
   ) {}
 
   @Post('signup')
@@ -40,12 +41,12 @@ export class UsersController {
   @UseInterceptors(FileInterceptor('photo'))
   update(
     @Param('id') id: string,
-    // @UploadedFile() file: ParameterDecorator,
+    @UploadedFile() file: ParameterDecorator,
     @Body() updateUserDto: UpdateUserDto,
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
     try {
-      const userID = this.sharedDecodedToken.getUserIdFromToken(header);
+      const userID = this.sharedService.getUserIdFromToken(header);
 
       if (id != userID) {
         throw new HttpException(
@@ -54,10 +55,15 @@ export class UsersController {
         );
       }
 
-      return this.usersService.update(id, updateUserDto);
+      return this.usersService.update(id, updateUserDto, file);
     } catch (error) {
       throw new HttpException(error.message, error.status);
     }
+  }
+
+  @Get(':id')
+  find(@Param('id') id: string): Promise<BasicResponse> {
+    return this.usersService.find(id);
   }
 
   @Post(':id/follow')
@@ -67,7 +73,7 @@ export class UsersController {
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
     try {
-      const userID = this.sharedDecodedToken.getUserIdFromToken(header);
+      const userID = this.sharedService.getUserIdFromToken(header);
 
       if (id == userID) {
         throw new HttpException(
@@ -89,7 +95,7 @@ export class UsersController {
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
     try {
-      const userID = this.sharedDecodedToken.getUserIdFromToken(header);
+      const userID = this.sharedService.getUserIdFromToken(header);
 
       if (id == userID) {
         throw new HttpException(

@@ -4,14 +4,16 @@ import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { LogInDto, SignUpDto, UpdateUserDto } from './dto';
-import { BasicResponse, LoginReponse } from 'src/interfaces';
+import { BasicResponse, GetUserResponse, LoginReponse } from 'src/interfaces';
 import { Follow, User } from './schemas';
+import { SharedService } from 'src/shared/shared.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Follow.name) private followModel: Model<Follow>,
+    private sharedService: SharedService,
     private jwtService: JwtService,
   ) {}
 
@@ -124,7 +126,7 @@ export class UsersService {
   async update(
     id: string,
     updateUserDto: UpdateUserDto,
-    // file: ParameterDecorator,
+    file: ParameterDecorator,
   ): Promise<BasicResponse> {
     try {
       const existEmail = await this.userModel.findOne({
@@ -144,18 +146,70 @@ export class UsersService {
         );
       }
 
-      // upload to S3
+      const user = await this.userModel.findById(id);
+      if (!user) {
+        throw new HttpException('User does not exist', HttpStatus.NOT_FOUND);
+      }
 
+      if (user.photo) {
+        await this.sharedService.deleteFile(user.photo);
+      }
+
+      const fileUploaded = await this.sharedService.uploadFile(
+        file['buffer'],
+        file['originalname'],
+      );
+      if (!fileUploaded) {
+        throw new HttpException(
+          'Error when upload to AWS',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      updateUserDto.photo = fileUploaded.Location;
       const updatedUser = await this.userModel.findByIdAndUpdate(id, {
         $set: { ...updateUserDto },
       });
       if (!updatedUser) {
-        throw new HttpException('User does not exist', HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          'Error when update to database',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
 
       const resp: BasicResponse = {
         statusCode: HttpStatus.OK,
         message: `Account ${updateUserDto.username} successfully updated`,
+      };
+
+      return resp;
+    } catch (error) {
+      if (!error.status) {
+        error.status = HttpStatus.INTERNAL_SERVER_ERROR;
+      }
+      throw new HttpException(error.message, error.status);
+    }
+  }
+
+  async find(id: string): Promise<BasicResponse> {
+    try {
+      const user = await this.userModel.findById(id);
+      if (!user) {
+        throw new HttpException('User does not exist', HttpStatus.NOT_FOUND);
+      }
+
+      const data: GetUserResponse = {
+        userID: user.id,
+        email: user.email,
+        username: user.username,
+        fullname: user.fullname,
+        photo: user.photo,
+      };
+
+      const resp: BasicResponse = {
+        statusCode: HttpStatus.OK,
+        message: 'Success',
+        data: data,
       };
 
       return resp;

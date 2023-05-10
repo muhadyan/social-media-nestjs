@@ -1,5 +1,5 @@
 import { OmitType } from '@nestjs/mapped-types';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class LogInDto {
   @IsString()
@@ -21,4 +21,8 @@ export class UpdateUserDto extends OmitType(SignUpDto, ['password'] as const) {
   @IsString()
   @IsNotEmpty()
   fullname: string;
+
+  @IsString()
+  @IsOptional()
+  photo: string;
 }
