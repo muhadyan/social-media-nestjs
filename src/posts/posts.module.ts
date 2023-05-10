@@ -12,7 +12,7 @@ import {
   Post,
   PostSchema,
 } from './schemas';
-import { SharedDecodedToken } from 'src/shared/shared.service';
+import { SharedService } from 'src/shared/shared.service';
 
 @Module({
   imports: [
@@ -26,6 +26,6 @@ import { SharedDecodedToken } from 'src/shared/shared.service';
     ]),
   ],
   controllers: [PostsController],
-  providers: [PostsService, SharedDecodedToken],
+  providers: [PostsService, SharedService],
 })
 export class PostsModule {}

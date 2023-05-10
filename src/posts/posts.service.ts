@@ -6,6 +6,7 @@ import { CreatePostDto, UpdatePostDto } from './dto';
 import { BasicQuery, BasicResponse } from 'src/interfaces';
 import { Follow, User } from 'src/users/schemas';
 import { CreateCommentDto } from './dto/comment.dto';
+import { SharedService } from 'src/shared/shared.service';
 
 @Injectable()
 export class PostsService {
@@ -15,11 +16,13 @@ export class PostsService {
     @InjectModel(Follow.name) private followModel: Model<Follow>,
     @InjectModel(Like.name) private likeModel: Model<Like>,
     @InjectModel(Comment.name) private commentModel: Model<Comment>,
+    private sharedService: SharedService,
   ) {}
 
   async create(
     createPostDto: CreatePostDto,
     userID: string,
+    file: ParameterDecorator,
   ): Promise<BasicResponse> {
     try {
       const existUser = await this.userModel.findById(userID);
@@ -27,13 +30,22 @@ export class PostsService {
         throw new HttpException('User does not exist', HttpStatus.NOT_FOUND);
       }
 
-      // upload to S3
+      const fileUploaded = await this.sharedService.uploadFile(
+        file['buffer'],
+        file['originalname'],
+      );
+      if (!fileUploaded) {
+        throw new HttpException(
+          'Error when upload to AWS',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
 
       const createPost: Post = {
         user_id: userID,
         title: createPostDto.title,
         caption: createPostDto.caption,
-        photo: null, // should be aws photo url
+        photo: fileUploaded.Location,
         likes: 0,
         comments: 0,
         created_at: new Date(),
@@ -51,6 +63,7 @@ export class PostsService {
       const resp: BasicResponse = {
         statusCode: HttpStatus.OK,
         message: 'Post successfully created',
+        data: createdPost,
       };
 
       return resp;
@@ -66,7 +79,7 @@ export class PostsService {
     id: string,
     userID: string,
     updatePostDto: UpdatePostDto,
-    // file: ParameterDecorator,
+    file: ParameterDecorator,
   ): Promise<BasicResponse> {
     try {
       const existPost = await this.postModel.findById(id);
@@ -80,8 +93,22 @@ export class PostsService {
         );
       }
 
-      // upload to S3
+      if (existPost.photo) {
+        await this.sharedService.deleteFile(existPost.photo);
+      }
 
+      const fileUploaded = await this.sharedService.uploadFile(
+        file['buffer'],
+        file['originalname'],
+      );
+      if (!fileUploaded) {
+        throw new HttpException(
+          'Error when upload to AWS',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      updatePostDto.photo = fileUploaded.Location;
       updatePostDto.updated_at = new Date();
       const updatedPost = await this.postModel.findByIdAndUpdate(id, {
         $set: { ...updatePostDto },

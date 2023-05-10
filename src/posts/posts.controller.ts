@@ -10,19 +10,20 @@ import {
   UseInterceptors,
   Put,
   Query,
+  UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PostsService } from './posts.service';
 import { CreatePostDto, UpdatePostDto } from './dto';
 import { BasicResponse, BasicQuery } from 'src/interfaces';
-import { SharedDecodedToken } from 'src/shared/shared.service';
+import { SharedService } from 'src/shared/shared.service';
 import { CreateCommentDto } from './dto/comment.dto';
 
 @Controller({ path: 'posts', version: '1' })
 export class PostsController {
   constructor(
     private readonly postsService: PostsService,
-    private sharedDecodedToken: SharedDecodedToken,
+    private sharedService: SharedService,
   ) {}
 
   @Post()
@@ -30,23 +31,23 @@ export class PostsController {
   @UseInterceptors(FileInterceptor('photo'))
   create(
     @Body() createPostDto: CreatePostDto,
-    // @UploadedFile() file: ParameterDecorator,
+    @UploadedFile() file: ParameterDecorator,
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
-    const userID = this.sharedDecodedToken.getUserIdFromToken(header);
-    return this.postsService.create(createPostDto, userID);
+    const userID = this.sharedService.getUserIdFromToken(header);
+    return this.postsService.create(createPostDto, userID, file);
   }
 
   @Put(':id')
   @UseInterceptors(FileInterceptor('photo'))
   update(
     @Param('id') id: string,
-    // @UploadedFile() file: ParameterDecorator,
+    @UploadedFile() file: ParameterDecorator,
     @Body() updatePostDto: UpdatePostDto,
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
-    const userID = this.sharedDecodedToken.getUserIdFromToken(header);
-    return this.postsService.update(id, userID, updatePostDto);
+    const userID = this.sharedService.getUserIdFromToken(header);
+    return this.postsService.update(id, userID, updatePostDto, file);
   }
 
   @Delete(':id')
@@ -54,7 +55,7 @@ export class PostsController {
     @Param('id') id: string,
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
-    const userID = this.sharedDecodedToken.getUserIdFromToken(header);
+    const userID = this.sharedService.getUserIdFromToken(header);
     return this.postsService.delete(id, userID);
   }
 
@@ -63,7 +64,7 @@ export class PostsController {
     @Query() query: BasicQuery,
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
-    const userID = this.sharedDecodedToken.getUserIdFromToken(header);
+    const userID = this.sharedService.getUserIdFromToken(header);
     return this.postsService.findAllMine(userID, query);
   }
 
@@ -72,7 +73,7 @@ export class PostsController {
     @Query() query: BasicQuery,
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
-    const userID = this.sharedDecodedToken.getUserIdFromToken(header);
+    const userID = this.sharedService.getUserIdFromToken(header);
     return this.postsService.findAllFollow(userID, query);
   }
 
@@ -82,7 +83,7 @@ export class PostsController {
     @Param('id') id: string,
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
-    const userID = this.sharedDecodedToken.getUserIdFromToken(header);
+    const userID = this.sharedService.getUserIdFromToken(header);
     return this.postsService.like(id, userID);
   }
 
@@ -92,7 +93,7 @@ export class PostsController {
     @Param('id') id: string,
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
-    const userID = this.sharedDecodedToken.getUserIdFromToken(header);
+    const userID = this.sharedService.getUserIdFromToken(header);
     return this.postsService.unlike(id, userID);
   }
 
@@ -103,7 +104,7 @@ export class PostsController {
     @Body() createCommentDto: CreateCommentDto,
     @Headers() header: ParameterDecorator,
   ): Promise<BasicResponse> {
-    const userID = this.sharedDecodedToken.getUserIdFromToken(header);
+    const userID = this.sharedService.getUserIdFromToken(header);
     return this.postsService.comment(id, userID, createCommentDto);
   }
 }

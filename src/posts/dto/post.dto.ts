@@ -8,10 +8,14 @@ export class CreatePostDto {
   @IsString()
   @IsNotEmpty()
   caption: string;
+}
+
+export class UpdatePostDto extends CreatePostDto {
+  @IsString()
+  @IsOptional()
+  photo: string;
 
   @IsDate()
   @IsOptional()
   updated_at: Date;
 }
-
-export class UpdatePostDto extends CreatePostDto {}
